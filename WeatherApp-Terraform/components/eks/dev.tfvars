@@ -1,0 +1,20 @@
+cluster_name = "Test"
+region = "us-east-1"
+vpc_id = "vpc-0625203773ab01e0e"
+subnet_ids = ["subnet-0efc738601d81aaf5", "subnet-0d497a27ea116b4be"]
+enabled_cluster_log_types = ["api", "audit", "authenticator"]
+cluster_encryption_cmk_arn = "arn:aws:kms:us-east-1:236382736970:key/a57a105f-45b6-4424-a780-9cc6938a4502"
+endpoint_private_access = false
+endpoint_public_access = true
+node_group_subnet_ids = ["subnet-0efc738601d81aaf5", "subnet-0d497a27ea116b4be"]
+node_group_instance_types = ["m1.medium"]
+node_group_max_size     = 5
+node_group_desired_size = 2
+node_group_min_size     = 1
+node_group_disk_size    = 30
+kubernetes_version = 1.32
+environment = "test"
+default_tags = {
+  Provisioned       = "Terraform"
+  Environment = "test"
+}
