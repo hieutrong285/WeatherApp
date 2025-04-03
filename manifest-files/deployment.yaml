@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-app
+  namespace: weather-app
+  labels:
+    app: weather-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: weather-app
+  template:
+    metadata:
+      labels:
+        app: weather-app
+    spec:
+      containers:
+      - name: weather-app
+        image: jaesukdo/web-weather:31
+        ports:
+        - containerPort: 3000
+        env:
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: weather-api-key
+              key: API_KEY
