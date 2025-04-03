@@ -1,0 +1,133 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'DOCKER_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
+        string(name: 'GIT_BRANCH', defaultValue: 'jenkins', description: 'Git branch to deploy from')
+        string(name: 'DEPLOYMENT_PATH', defaultValue: './manifest-files/deployment.yaml', description: 'Path to deployment file')
+    }
+
+    environment {
+        AWS_REGION = 'us-east-1'
+        CLUSTER_NAME = 'Test'
+        GIT_REPO_URL = 'https://github.com/hieutrong285/WeatherApp.git'
+        NAMESPACE = 'weather-app'
+        APP_NAME = 'weather-app'
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                git branch: "${params.GIT_BRANCH}", 
+                    credentialsId: 'github', 
+                    url: "${GIT_REPO_URL}"
+            }
+        }
+
+        stage('Setup AWS CLI and kubectl') {
+            steps {
+                script {
+                    sh '''
+                    echo "Installing AWS CLI and kubectl if not already installed..."
+
+                    # Install AWS CLI if not present
+                    if ! command -v aws &> /dev/null; then
+                        echo "AWS CLI not found, installing..."
+                        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                        unzip -o awscliv2.zip
+                        ./aws/install --bin-dir /usr/local/bin --install-dir /tmp --update
+                        aws --version
+                    fi
+
+                    # Install kubectl if not present
+                    if ! command -v kubectl &> /dev/null; then
+                        echo "kubectl not found, installing..."
+                        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                        chmod +x kubectl
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('Configure AWS CLI') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    script {
+                        sh '''
+                        echo "Configuring AWS CLI..."
+                        aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                        aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                        aws configure set region ${AWS_REGION}
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Authenticate with EKS Cluster') {
+            steps {
+                script {
+                    sh '''
+                    echo "Authenticating with EKS Cluster..."
+                    aws sts get-caller-identity
+                    aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                        // Apply kubernetes manifests
+                        sh """
+                            kubectl apply -f k8s-manifest/deployment.yaml -n ${NAMESPACE}
+                            kubectl apply -f k8s-manifest/service.yaml -n ${NAMESPACE}
+                        """
+                        
+                        // Wait for deployment to complete
+                        sh """
+                            kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                        // Check deployment status
+                        sh """
+                            kubectl get deployment ${APP_NAME} -n ${NAMESPACE}
+                            kubectl get pod -l app=${APP_NAME} -n ${NAMESPACE}
+                            kubectl get svc -l app=${APP_NAME} -n ${NAMESPACE}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Successfully deployed image with tag: ${params.DOCKER_TAG}"
+        }
+        failure {
+            echo 'Deployment to EKS failed!'
+        }
+        always {
+            echo 'Cleaning up workspace...'
+            cleanWs()
+        }
+    }
+}
