@@ -17,7 +17,7 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                git branch: 'CI/CD', 
+                git branch: 'jenkins', 
                     credentialsId: 'github', 
                     url: 'https://github.com/hieutrong285/WeatherApp.git'
             }
@@ -41,11 +41,11 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASSWORD')]) {
                         def NEW_IMAGE_NAME = "${DOCKER_HUB_REPO}:${BUILD_NUMBER}"
 
-                        sh "git checkout CI/CD"
-                        sh "git pull origin CI/CD"
+                        sh "git checkout jenkins"
+                        sh "git pull origin jenkins"
                         sh "sed -i 's|image: .*|image: ${NEW_IMAGE_NAME}|' ./manifest-files/deployment.yaml"
 
-                        if (sh(returnStatus: true, script: "git diff --quiet --exit-code ./k8s-manifest/deployment.yaml") != 0) {
+                        if (sh(returnStatus: true, script: "git diff --quiet --exit-code ./manifest-files/deployment.yaml") != 0) {
                             sh 'git config --global user.email "jenkins@example.com"'
                             sh 'git config --global user.name "Jenkins CI"'
                             sh 'git add ./manifest-files/deployment.yaml'
