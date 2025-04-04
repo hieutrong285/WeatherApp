@@ -25,7 +25,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: "${params.GIT_BRANCH}", 
-                    credentialsId: 'github', 
+                    credentialsId: 'github-trong', 
                     url: "${GIT_REPO_URL}"
             }
         }
