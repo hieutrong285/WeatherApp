@@ -89,8 +89,8 @@ pipeline {
                     withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
                         // Apply kubernetes manifests
                         sh """
-                            kubectl apply -f k8s-manifest/deployment.yaml -n ${NAMESPACE}
-                            kubectl apply -f k8s-manifest/service.yaml -n ${NAMESPACE}
+                            kubectl apply -f manifest-files/deployment.yaml -n ${NAMESPACE}
+                            kubectl apply -f manifest-files/service.yaml -n ${NAMESPACE}
                         """
                         
                         // Wait for deployment to complete
