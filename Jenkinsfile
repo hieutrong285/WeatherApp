@@ -18,7 +18,7 @@ pipeline {
         stage('Checkout from Git') {
             steps {
                 git branch: 'jenkins', 
-                    credentialsId: 'github', 
+                    credentialsId: 'github-trong', 
                     url: 'https://github.com/hieutrong285/WeatherApp.git'
             }
         }
