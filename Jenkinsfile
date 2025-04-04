@@ -26,7 +26,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    withDockerRegistry([credentialsId: 'docker', url: 'https://index.docker.io/v1/']) {
+                    withDockerRegistry([credentialsId: 'trong-docker', url: 'https://index.docker.io/v1/']) {
                         sh "docker build -t ${DOCKER_HUB_REPO} ."
                         sh "docker tag ${DOCKER_HUB_REPO} ${DOCKER_HUB_REPO}:${BUILD_NUMBER}"
                         sh "docker push ${DOCKER_HUB_REPO}:${BUILD_NUMBER}"
@@ -38,7 +38,7 @@ pipeline {
         stage('Update Deployment File') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASSWORD')]) {
+                    withCredentials([usernamePassword(credentialsId: 'github-trong', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASSWORD')]) {
                         def NEW_IMAGE_NAME = "${DOCKER_HUB_REPO}:${BUILD_NUMBER}"
 
                         sh "git checkout jenkins"
